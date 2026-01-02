@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ClerkProvider } from "@clerk/nextjs";
  import { dark } from '@clerk/themes'
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata = {
   title: "Create Next App",
@@ -41,6 +42,7 @@ export default function RootLayout({ children }) {
                     © 2026 My Event Management App. All rights reserved.
                   </div>
                 </footer>
+                <Toaster richColors/>
               </main>
           </ConvexClientProvider>
         </ClerkProvider>
