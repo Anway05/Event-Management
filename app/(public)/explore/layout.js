@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function ExploreLayout() {
+export default function ExploreLayout({ children }) {
 
     const pathname = usePathname();
     const router = useRouter();
