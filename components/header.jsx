@@ -9,6 +9,7 @@ import { Authenticated, Unauthenticated } from "convex/react";
 import { BarLoader } from "react-spinners"
 import { useStoreUser } from '@/hooks/use-store-user';
 import { Building, Plus, Ticket } from 'lucide-react';
+import SearchLocationBar from './search-location-bar';
 
 const Header = () => {
 
@@ -71,6 +72,9 @@ const Header = () => {
             <BarLoader width={"100%"} color="#a855f7" />
           </div>
           )}
+          <div className="md:hidden border-t px-3 py-3">
+          <SearchLocationBar />
+        </div>
       </nav>
     </>
   )
