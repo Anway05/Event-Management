@@ -1,7 +1,8 @@
 import { api } from "@/convex/_generated/api";
 import { set } from "date-fns/set";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useConvexQuery } from "./use-convex-query";
 
 // Pages that require onboarding (attendee-centered)
 const ATTENDEE_PAGES = ["/explore", "/events", "/my-tickets", "/profile"];
