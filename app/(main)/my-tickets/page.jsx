@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Calendar, MapPin, Loader2, Ticket } from "lucide-react";
@@ -22,24 +22,44 @@ import EventCard from "@/components/event-card";
 
 export default function MyTicketsPage() {
     const router = useRouter();
-    const[selectedTicket, setSelectedTicket] = useState(null);
+    const [selectedTicket, setSelectedTicket] = useState(null);
+    const [localRegistrations, setLocalRegistrations] = useState(null);
 
     const { data: registrations, isloading } = useConvexQuery(
         api.registrations.getMyRegistrations
     );
 
-    const{ mutate: cancelRegistration, isloading: isCancelling } = 
-        useConvexMutation(api.registrations.cancelRegistrations);
+    const{ mutate: cancelRegistration } = 
+      useConvexMutation(api.registrations.cancelRegistrations);
 
-    const handleCancelRegistration = async ({registrationId}) => {
+    // Sync server registrations with local state
+    useEffect(() => {
+        if(registrations) {
+            setLocalRegistrations(registrations);
+        }
+    }, [registrations]);
+
+    const handleCancelRegistration = async (registrationId) => {
         if(!window.confirm("Are you sure you want to cancel this registration?")){
             return;
         }
 
         try {
-            await cancelRegistration({registrationId});
-            toast.success("Registration cancelled successfully.");
+            // Optimistically update UI
+            setLocalRegistrations(prev => 
+                prev.map(reg => 
+                    reg._id === registrationId 
+                        ? { ...reg, status: "cancelled" } 
+                        : reg
+                )
+            );
+            
+            // Call mutation
+            await cancelRegistration({ registrationId });
+            toast.success("Registration cancelled successfully!");
         } catch (error) {
+            // Revert on error
+            setLocalRegistrations(registrations);
             toast.error(error.message || "Failed to cancel registration.");
         }
     };
@@ -53,15 +73,19 @@ export default function MyTicketsPage() {
     }
 
     const now = Date.now();
+    const displayRegistrations = localRegistrations || registrations || [];
 
-    const upcomingTickets = registrations?.filter(
+    // Show only confirmed registrations in Upcoming
+    const upcomingTickets = displayRegistrations.filter(
         (reg) => 
-            reg.event && reg.event.startDate >= now && reg.status ==="confirmed"
+            reg.event && reg.event.startDate >= now && reg.status === "confirmed"
     );
-    const pastTickets = registrations?.filter(
+    
+    // Show cancelled or past event registrations
+    const pastTickets = displayRegistrations.filter(
         (reg) => 
-            reg.event && (reg.event.startDate < now || reg.status ==="cancelled")
-    )
+            reg.event && (reg.event.startDate < now || reg.status === "cancelled")
+    );
 
     return(
         <div className="min-h-screen pb-20 px-4">
@@ -92,19 +116,25 @@ export default function MyTicketsPage() {
           </div>
         )}
 
-        {/* Past Tickets */}
+        {/* Past / Cancelled Tickets */}
         {pastTickets?.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Past Events</h2>
+            <h2 className="text-2xl font-bold mb-4">Past & Cancelled Events</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pastTickets.map((registration) => (
-                <EventCard
-                  key={registration._id}
-                  event={registration.event}
-                  action={null}
-                  className="opacity-60"
-                />
+                <div key={registration._id} className="relative">
+                  <EventCard
+                    event={registration.event}
+                    action={null}
+                    className="opacity-60"
+                  />
+                  {registration.status === "cancelled" && (
+                    <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      Cancelled
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

@@ -1,3 +1,7 @@
+import { internal } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+ 
  // Get event with detailed stats for dashboard
  export const getEventDashboard = query({
     args: { eventId: v.string() },
@@ -21,7 +25,7 @@
         // Get all registrations
         const registrations = await ctx.db
         .query("registrations")
-        .withIndex("byEvent", (q) => q.eq("eventId", args.eventId))
+        .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
         .collect();
 
         // Calculate stats
@@ -56,7 +60,7 @@
         const startDay = new Date(event.startDate).setHours(0, 0, 0, 0);
         const endDay = new Date(event.endDate).setHours(0, 0, 0, 0);
         const isEventToday = today >= startDay && today <= endDay;
-        const isEventPast = event.endDate < now;
+        const isEventPast = event.endDate < Date.now();
 
         return {
             event,

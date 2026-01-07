@@ -12,13 +12,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CATEGORIES } from "@/lib/data";
 import Autoplay from "embla-carousel-autoplay";
 import EventCard from "@/components/event-card";
@@ -29,27 +23,40 @@ const ExplorePage = () => {
 
   const plugin = useRef(Autoplay({ delay: 2000, stopOnInteraction: true }));
 
-  const { data:currentUser } = useConvexQuery(api.users.getCurrentUser)
+  const { data: currentUser } = useConvexQuery(api.users.getCurrentUser);
 
-  const { data: featuredEvents, isLoading: loadingFeatured } = useConvexQuery(api.explore.getFeaturedEvents,{ limit: 3 });
+  const { data: featuredEvents, isLoading: loadingFeatured } = useConvexQuery(
+    api.explore.getFeaturedEvents,
+    { limit: 3 }
+  );
 
-  const { data: localEvents, isLoading: loadingLocal } = useConvexQuery(api.explore.getEventsByLocation, { 
-    city: currentUser?.city || "Kolkata", 
-    state: currentUser?.state || "West Bengal",
-    limit: 4 });
+  const { data: localEvents, isLoading: loadingLocal } = useConvexQuery(
+    api.explore.getEventsByLocation,
+    {
+      city: currentUser?.city || "Kolkata",
+      state: currentUser?.state || "West Bengal",
+      limit: 4,
+    }
+  );
 
   const { data: popularEvents, isLoading: loadingPopular } = useConvexQuery(
-    api.explore.getPopularEvents,{ limit: 6 }
+    api.explore.getPopularEvents,
+    { limit: 6 }
   );
 
-    const { data: categoryCounts } = useConvexQuery(
-      api.explore.getCategoryCounts
+  const { data: categoryCounts } = useConvexQuery(
+    api.explore.getCategoryCounts
   );
 
-    const handleEventClick = (slug) => {
-      router.push(`/events/${slug}`);
-  }
-    const handleViewLocalEvents = () => {
+  const handleEventClick = (slug) => {
+    router.push(`/events/${slug}`);
+  };
+
+  const handleCategoryClick = (categoryId) => {
+    router.push(`/explore/${categoryId}`);
+  };
+
+  const handleViewLocalEvents = () => {
     const city = currentUser?.location?.city || "Kolkata";
     const state = currentUser?.location?.state || "West Bengal";
     const slug = createLocationSlug(city, state);
@@ -74,19 +81,33 @@ const ExplorePage = () => {
   }
 
   return (
-    <>
-      {/* Hero Title */}
-      <div className="pb-12 text-center">
-        <h1 className="text-5xl md:text-6xl font-bold mb-4">Discover Events</h1>
-        <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-          Explore featured events, find what&apos;s happening locally, or browse
-          events across India
-        </p>
+    <div className="-mt-6 md:-mt-16">
+      {/* Hero Section */}
+      <div className="relative brand-gradient py-20 md:py-28 px-6 mb-16 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+        <div className="relative max-w-6xl mx-auto text-center">
+          <div className="inline-block mb-4">
+            <Badge className="bg-white/20 text-white border-white/30 text-sm px-4 py-1.5">
+              Discover Amazing Events
+            </Badge>
+          </div>
+          <h1 className="text-6xl md:text-7xl font-bold mb-6 text-white drop-shadow-lg">
+            Find Your Next<br />Experience
+          </h1>
+          <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+            Curated highlights, local happenings, and trending events across the country.
+          </p>
+        </div>
       </div>
 
+      <div className="max-w-7xl mx-auto px-6 space-y-20 pb-16">
       {/* Featured Carousel */}
       {featuredEvents && featuredEvents.length > 0 && (
-        <div className="mb-16">
+        <div>
+          <div className="mb-6">
+            <h2 className="text-4xl font-bold mb-2">Featured Events</h2>
+            <p className="text-lg text-muted-foreground">Handpicked experiences you won't want to miss</p>
+          </div>
           <Carousel
             plugins={[plugin.current]}
             className="w-full"
@@ -97,7 +118,7 @@ const ExplorePage = () => {
               {featuredEvents.map((event) => (
                 <CarouselItem key={event._id}>
                   <div
-                    className="relative h-96 rounded-xl overflow-hidden cursor-pointer"
+                    className="relative h-[500px] rounded-3xl overflow-hidden cursor-pointer group"
                     onClick={() => handleEventClick(event.slug)}
                   >
                     {event.coverImage ? (
@@ -105,43 +126,47 @@ const ExplorePage = () => {
                         src={event.coverImage}
                         alt={event.title}
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                         priority
                       />
                     ) : (
                       <div
                         className="absolute inset-0"
-                        style={{ backgroundColor: event.themeColor }}
+                        style={
+                          event.themeColor?.startsWith("linear-gradient")
+                            ? { backgroundImage: event.themeColor }
+                            : { backgroundColor: event.themeColor || "#4f46e5" }
+                        }
                       />
                     )}
-                    <div className="absolute inset-0 bg-linear-to-r from-black/60 to-black/30" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                     <div className="relative h-full flex flex-col justify-end p-8 md:p-12">
-                      <Badge className="w-fit mb-4" variant="secondary">
+                      <Badge className="w-fit mb-4 bg-white/20 backdrop-blur-sm border-white/30 text-white">
+                        <MapPin className="w-3 h-3 mr-1" />
                         {event.city}, {event.state || event.country}
                       </Badge>
-                      <h2 className="text-3xl md:text-5xl font-bold mb-3 text-white">
+                      <h2 className="text-4xl md:text-6xl font-bold mb-4 text-white drop-shadow-md">
                         {event.title}
                       </h2>
-                      <p className="text-lg text-white/90 mb-4 max-w-2xl line-clamp-2">
+                      <p className="text-lg md:text-xl text-white/90 mb-6 max-w-3xl line-clamp-2">
                         {event.description}
                       </p>
-                      <div className="flex items-center gap-4 text-white/80">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span className="text-sm">
+                      <div className="flex flex-wrap items-center gap-6 text-white">
+                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                          <Calendar className="w-5 h-5" />
+                          <span className="font-medium">
                             {format(event.startDate, "PPP")}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span className="text-sm">{event.city}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          <span className="text-sm">
+                        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                          <Users className="w-5 h-5" />
+                          <span className="font-medium">
                             {event.registrationCount} registered
                           </span>
                         </div>
+                        <Button variant="brand" size="lg" className="ml-auto">
+                          View Event <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -156,24 +181,20 @@ const ExplorePage = () => {
 
       {/* Local Events */}
       {localEvents && localEvents.length > 0 && (
-        <div className="mb-16">
-          <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-1">Events Near You</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-4xl font-bold mb-2">Events Near You</h2>
+              <p className="text-lg text-muted-foreground">
                 Happening in {currentUser?.location?.city || "your area"}
               </p>
             </div>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleViewLocalEvents}
-            >
-              View All <ArrowRight className="w-4 h-4" />
+            <Button variant="brand" size="lg" className="gap-2" onClick={handleViewLocalEvents}>
+              View All <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {localEvents.map((event) => (
               <EventCard
                 key={event._id}
@@ -187,23 +208,26 @@ const ExplorePage = () => {
       )}
 
       {/* Browse by Category */}
-      <div className="mb-16">
-        <h2 className="text-3xl font-bold mb-6">Browse by Category</h2>
+      <div>
+        <div className="mb-8">
+          <h2 className="text-4xl font-bold mb-2">Browse by Category</h2>
+          <p className="text-lg text-muted-foreground">Explore events tailored to your interests</p>
+        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
           {categoriesWithCounts.map((category) => (
             <Card
               key={category.id}
-              className="py-2 group cursor-pointer hover:shadow-lg transition-all hover:border-purple-500/50"
+              className="glass group cursor-pointer hover:scale-105 transition-all duration-300 border-2 hover:border-purple-400/50"
               onClick={() => handleCategoryClick(category.id)}
             >
-              <CardContent className="px-3 sm:p-6 flex items-center gap-3">
-                <div className="text-3xl sm:text-4xl">{category.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold mb-1 group-hover:text-purple-400 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="text-5xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1 group-hover:brand-text transition-colors">
                     {category.label}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground font-medium">
                     {category.count} Event{category.count !== 1 ? "s" : ""}
                   </p>
                 </div>
@@ -215,13 +239,13 @@ const ExplorePage = () => {
 
       {/* Popular Events Across Country */}
       {popularEvents && popularEvents.length > 0 && (
-        <div className="mb-16">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold mb-1">Popular Across India</h2>
-            <p className="text-muted-foreground">Trending events nationwide</p>
+        <div>
+          <div className="mb-8">
+            <h2 className="text-4xl font-bold mb-2">Popular Across India</h2>
+            <p className="text-lg text-muted-foreground">Trending events nationwide</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {popularEvents.map((event) => (
               <EventCard
                 key={event._id}
@@ -241,20 +265,23 @@ const ExplorePage = () => {
         (!featuredEvents || featuredEvents.length === 0) &&
         (!localEvents || localEvents.length === 0) &&
         (!popularEvents || popularEvents.length === 0) && (
-          <Card className="p-12 text-center">
-            <div className="max-w-md mx-auto space-y-4">
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold">No events yet</h2>
-              <p className="text-muted-foreground">
+          <Card className="glass p-16 text-center">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="text-8xl mb-4">🎉</div>
+              <h2 className="text-3xl font-bold">No events yet</h2>
+              <p className="text-lg text-muted-foreground">
                 Be the first to create an event in your area!
               </p>
-              <Button asChild className="gap-2">
-                <a href="/create-event">Create Event</a>
+              <Button variant="brand" size="lg" asChild className="gap-2">
+                <a href="/create-event">
+                  Create Event <ArrowRight className="w-4 h-4" />
+                </a>
               </Button>
             </div>
           </Card>
         )}
-    </>
+      </div>
+    </div>
   );
 }
 

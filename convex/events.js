@@ -105,6 +105,51 @@ export const getMyEvents = query({
   },
 });
 
+// Update event
+export const updateEvent = mutation({
+  args: {
+    eventId: v.id("events"),
+    updates: v.object({
+      title: v.optional(v.string()),
+      description: v.optional(v.string()),
+      category: v.optional(v.string()),
+      tags: v.optional(v.array(v.string())),
+      startDate: v.optional(v.number()),
+      endDate: v.optional(v.number()),
+      locationType: v.optional(v.union(v.literal("physical"), v.literal("online"))),
+      venue: v.optional(v.string()),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      capacity: v.optional(v.number()),
+      ticketType: v.optional(v.union(v.literal("free"), v.literal("paid"))),
+      ticketPrice: v.optional(v.number()),
+      coverImage: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    // Check if user is the organizer
+    if (event.organizerId !== user._id) {
+      throw new Error("You are not authorized to update this event");
+    }
+
+    // Update the event
+    await ctx.db.patch(args.eventId, {
+      ...args.updates,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
 // Delete event
 export const deleteEvent = mutation({
   args: { eventId: v.id("events") },

@@ -3,8 +3,12 @@ import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-function generateQRCode(){
-    return `EVT-4{Date.now()}-4{Math.random().toString(36).substring(2,8).toUpperCase()}`;
+
+function generateQRCode() {
+    return `EVT-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 8)
+        .toUpperCase()}`;
 }
 
 export const registerForEvent = mutation({
@@ -14,7 +18,7 @@ export const registerForEvent = mutation({
         attendeeEmail: v.string(),
     },
     handler: async(ctx, args) => { 
-        const user = ctx.runQuery(internal.users.getCurrentUser);
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
         if(!user){
             throw new Error("User must be logged in to register for an event.");
         }
@@ -28,16 +32,35 @@ export const registerForEvent = mutation({
             throw new Error("Event is full. Cannot register.");
         }
 
-        // Check if user already registered
+        // Check if user already has a confirmed registration
         const existingRegistration = await ctx.db
             .query("registrations")
-            .withIndex("by_event_and_user", (q) => q.eq("eventId", args.eventId).eq("userId", user._id)).unique();
+            .withIndex("by_event_user", (q) => 
+                q.eq("eventId", args.eventId).eq("userId", user._id)
+            )
+            .collect();
 
-        if(existingRegistration){
+        const confirmedReg = existingRegistration.find(reg => reg.status === "confirmed");
+        
+        if(confirmedReg){
             throw new Error("User already registered for this event.");
         }
 
-        // Create registration
+        // If user has a cancelled registration, reactivate it instead of creating new one
+        const cancelledReg = existingRegistration.find(reg => reg.status === "cancelled");
+        if(cancelledReg){
+            await ctx.db.patch(cancelledReg._id, {
+                status: "confirmed",
+                checkedIn: false,
+            });
+            // Increment event registration count
+            await ctx.db.patch(args.eventId, {
+                registrationCount: event.registrationCount + 1,
+            });
+            return cancelledReg._id;
+        }
+
+        // Create new registration
         const qrCode = generateQRCode();
         const registrationId = await ctx.db.insert("registrations", {
             eventId: args.eventId,
@@ -64,22 +87,26 @@ export const checkRegistration = query({
         eventId: v.id("events"),
     },
     handler: async(ctx, args) => {
-        const user = ctx.runQuery(internal.users.getCurrentUser);
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
         if(!user){
-            throw new Error("User must be logged in to check registration.");
+            return null;
         }
 
         const registration = await ctx.db
             .query("registrations")
-            .withIndex("by_event_and_user", (q) => q.eq("eventId", args.eventId).eq("userId", user._id)).unique();
-        return registration ;
+            .withIndex("by_event_user", (q) => 
+                q.eq("eventId", args.eventId).eq("userId", user._id)
+            )
+            .unique();
+
+        return registration;
     }
 });
 
 // Get user's registrations (tickets)
 export const getMyRegistrations = query({
     handler: async(ctx) => {
-        const user = ctx.runQuery(internal.users.getCurrentUser);
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
         if(!user){
             throw new Error("User must be logged in to view registrations.");
         }
@@ -169,6 +196,31 @@ export const getRegistrations = query({
     }
 })
 
+// Alias for getEventRegistrations (used by dashboard)
+export const getEventRegistrations = query({
+    args: { eventId: v.id("events")},
+    handler: async(ctx, args) => {
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+        const event = await ctx.db.get(args.eventId);
+        if(!event){
+            throw new Error("Event not found.");
+        }
+
+        if(event.organizerId !== user._id){
+            throw new Error("User not authorized to view registrations for this event.");
+        }
+
+        const registrations = await ctx.db
+            .query("registrations")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .order("desc")
+            .collect();
+
+        return registrations;
+    }
+})
+
 // Check in attendence with QR code
 export const checkInWithQRCode = mutation({
     args: { qrCode: v.string()},
@@ -204,7 +256,6 @@ export const checkInWithQRCode = mutation({
         }
 
         //Check in
-
         await ctx.db.patch(registration._id, {
             checkedIn: true,
             checkInTime: Date.now(),

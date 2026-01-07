@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default function EventCard({
-    event,
-    onClick,
-    onDelete,
-    variant = "grid", // "grid" or "list"
-    action = null, // "event" | "ticket" | null
-    className = "",
+  event,
+  onClick,
+  onDelete,
+  variant = "grid", // "grid" or "list"
+  action = null, // "event" | "ticket" | null
+  className = "",
 }) {
 
     if(variant === "list"){
@@ -65,73 +65,55 @@ export default function EventCard({
       </Card>
     );
   }
-  // Grid variant (default - original design)
+  // Grid variant - modern overlay design
   return (
     <Card
-      className={`overflow-hidden group pt-0 ${onClick ? "cursor-pointer hover:shadow-lg transition-all hover:border-purple-500/50" : ""} ${className}`}
+      className={`overflow-hidden group pt-0 ${onClick ? "cursor-pointer transition-all hover:shadow-xl" : ""} ${className}`}
       onClick={onClick}
     >
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-56">
         {event.coverImage ? (
           <Image
             src={event.coverImage}
             alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-            width={500}
-            height={192}
+            className="w-full h-full object-cover"
+            width={600}
+            height={224}
             priority
           />
         ) : (
-          <div
-            className="w-full h-full flex items-center justify-center text-4xl"
-            style={{ backgroundColor: event.themeColor }}
-          >
+          <div className="w-full h-full flex items-center justify-center text-5xl" style={{ backgroundColor: event.themeColor }}>
             {getCategoryIcon(event.category)}
           </div>
         )}
-        <div className="absolute top-3 right-3">
-          <Badge variant="secondary">
-            {event.ticketType === "free" ? "Free" : "Paid"}
-          </Badge>
+        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+          <div className="space-y-1">
+            <h3 className="text-white text-xl font-semibold drop-shadow-md line-clamp-2">{event.title}</h3>
+            <div className="flex items-center gap-2 text-white/80 text-xs">
+              <Calendar className="w-4 h-4" />
+              <span>{format(event.startDate, "PPP")}</span>
+              <span className="mx-2">•</span>
+              <MapPin className="w-4 h-4" />
+              <span className="line-clamp-1">
+                {event.locationType === "online" ? "Online" : `${event.city}, ${event.state || event.country}`}
+              </span>
+            </div>
+          </div>
+          <Badge className="brand-gradient text-white">{event.ticketType === "free" ? "Free" : "Paid"}</Badge>
         </div>
       </div>
 
       <CardContent className="space-y-3">
-        <div>
-          <Badge variant="outline" className="mb-2">
-            {getCategoryIcon(event.category)} {getCategoryLabel(event.category)}
-          </Badge>
-          <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-purple-400 transition-colors">
-            {event.title}
-          </h3>
-        </div>
-
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            <span>{format(event.startDate, "PPP")}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span className="line-clamp-1">
-              {event.locationType === "online"
-                ? "Online Event"
-                : `${event.city}, ${event.state || event.country}`}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span>
-              {event.registrationCount} / {event.capacity} registered
-            </span>
-          </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Users className="w-4 h-4" />
+          <span>{event.registrationCount} / {event.capacity} registered</span>
         </div>
 
         {action && (
           <div className="flex gap-2 pt-2">
-            {/* Primary button */}
             <Button
-              variant="outline"
+              variant="brand"
               size="sm"
               className="flex-1 gap-2"
               onClick={(e) => {
@@ -142,7 +124,7 @@ export default function EventCard({
               {action === "event" ? (
                 <>
                   <Eye className="w-4 h-4" />
-                  View
+                  View Details
                 </>
               ) : (
                 <>
@@ -152,21 +134,26 @@ export default function EventCard({
               )}
             </Button>
 
-            {/* Secondary button - delete / cancel */}
             {onDelete && (
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
-                className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                className="gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(event._id);
                 }}
               >
                 {action === "event" ? (
-                  <Trash2 className="w-4 h-4" />
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
                 ) : (
-                  <X className="w-4 h-4" />
+                  <>
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </>
                 )}
               </Button>
             )}
@@ -176,4 +163,3 @@ export default function EventCard({
     </Card>
   );
 }
-    

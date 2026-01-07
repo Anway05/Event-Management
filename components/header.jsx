@@ -28,54 +28,58 @@ export default function Header() {
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-xl z-20 border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/spott.png"
-              alt="Spott logo"
-              width={500}
-              height={500}
-              className="w-full h-11"
-              priority
-            />
-            {/* <span className="text-purple-500 text-2xl font-bold">spott*</span> */}
-            {hasPro && (
-              <Badge className="bg-linear-to-r from-pink-500 to-orange-500 gap-1 text-white ml-3">
-                <Crown className="w-3 h-3" />
-                Pro
-              </Badge>
-            )}
-          </Link>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo + Brand */}
+            <Link href="/" className="flex items-center gap-2 md:gap-3 shrink-0">
+              <Image
+                src="/logo.svg"
+                alt="Nova Events logo"
+                width={40}
+                height={40}
+                className="h-8 w-8 md:h-10 md:w-10"
+                priority
+              />
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-pink-500 via-orange-500 to-red-500 text-lg md:text-2xl font-bold tracking-tight">
+                Nova Events
+              </span>
+              {hasPro && (
+                <Badge className="bg-linear-to-r from-pink-500 to-orange-500 gap-1 text-white ml-1 md:ml-2 hidden sm:flex">
+                  <Crown className="w-3 h-3" />
+                  Pro
+                </Badge>
+              )}
+            </Link>
 
-          {/* Search & Location - Desktop Only */}
-          <div className="hidden md:flex flex-1 justify-center">
-            <SearchLocationBar />
-          </div>
+            {/* Search & Location - Desktop Only */}
+            <div className="hidden lg:flex flex-1 max-w-2xl justify-center mx-4">
+              <SearchLocationBar />
+            </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center">
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
             {/* Show Pro badge or Upgrade button */}
             {!hasPro && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowUpgradeModal(true)}
+                className="hidden md:flex"
               >
                 Pricing
               </Button>
             )}
 
-            <Button variant="ghost" size="sm" asChild className={"mr-2"}>
+            <Button variant="ghost" size="sm" asChild className="hidden md:flex">
               <Link href="/explore">Explore</Link>
             </Button>
 
             <Authenticated>
               {/* Create Event Button */}
-              <Button size="sm" asChild className="flex gap-2 mr-4">
+              <Button size="sm" variant="brand" asChild className="flex gap-2">
                 <Link href="/create-event">
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Create Event</span>
+                  <span className="hidden md:inline">Create Event</span>
                 </Link>
               </Button>
 
@@ -84,7 +88,7 @@ export default function Header() {
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {
-                    avatarBox: "w-9 h-9",
+                    avatarBox: "w-8 h-8 md:w-9 md:h-9",
                   },
                 }}
               >
@@ -110,10 +114,11 @@ export default function Header() {
               </SignInButton>
             </Unauthenticated>
           </div>
+          </div>
         </div>
 
         {/* Mobile Search & Location - Below Header */}
-        <div className="md:hidden border-t px-3 py-3">
+        <div className="lg:hidden border-t px-3 py-3">
           <SearchLocationBar />
         </div>
 

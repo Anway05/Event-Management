@@ -48,23 +48,25 @@ export default defineSchema({
     // Date & Time
     startDate: v.number(),
     endDate: v.number(),
-    timezone: v.string(),
+    timezone: v.optional(v.string()),
 
     // Location
-    locationType: v.union(v.literal("physical"), v.literal("online")),
-    venue: v.optional(v.string()),
+    locationType: v.union(v.literal("online"), v.literal("physical")),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    country: v.optional(v.string()),
     address: v.optional(v.string()),
-    city: v.string(),
-    state: v.optional(v.string()), // Added state field
-    country: v.string(),
+    venue: v.optional(v.string()),
 
-    // Capacity & Ticketing
-    capacity: v.number(),
+    // Ticket info
     ticketType: v.union(v.literal("free"), v.literal("paid")),
-    ticketPrice: v.optional(v.number()), // Paid at event offline
+    ticketPrice: v.optional(v.number()),
+
+    // Capacity
+    capacity: v.number(),
     registrationCount: v.number(),
 
-    // Customization
+    // Media
     coverImage: v.optional(v.string()),
     themeColor: v.optional(v.string()),
 

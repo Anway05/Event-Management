@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import UnsplashImagePicker from "@/components/unsplash-image-picker";
+import EnhancedImagePicker from "@/components/enhanced-image-picker";
 import AIEventCreator from "./_components/ai-event-creator";
 import UpgradeModal from "@/components/upgrade-modal";
 import { CATEGORIES } from "@/lib/data";
@@ -89,7 +89,7 @@ const CreateEvent = () => {
         locationType: "physical",
         ticketType: "free",
         capacity: 50,
-        themeColor: "#1dbc97",
+        themeColor: "#4f46e5",
         category: "",
         state: "",
         city: "",
@@ -113,15 +113,22 @@ const CreateEvent = () => {
       return City.getCitiesOfState("IN", st.isoCode);
     }, [selectedState, indianStates]);
 
-    // Color presets - show all for Pro, only default for Free
+    // Theme palettes
+    const FREE_COLORS = ["#4f46e5", "#10b981", "#f59e0b"]; // Indigo, Emerald, Amber
+    const PRO_GRADIENTS = [
+      "linear-gradient(90deg, #a855f7, #f59e0b)",
+      "linear-gradient(135deg, #06b6d4, #3b82f6)",
+      "linear-gradient(135deg, #ef4444, #f59e0b)",
+    ];
+    // Show solid defaults for everyone, gradients for Pro
     const colorPresets = [
-      "#1dbc97", // Default color (always available)
-      ...(hasPro ? ["#4c1d95", "#065f46", "#92400e", "#7f1d1d", "#831843"] : []),
+      ...FREE_COLORS,
+      ...(hasPro ? ["#9333ea", "#1f2937", ...PRO_GRADIENTS] : []),
     ];
 
     const handleColorClick = (color) => {
-      // If not default color and user is Free, prompt upgrade
-      if (!hasPro && color !== "#1dbc97") {
+      // Gate non-free palettes for Free users
+      if (!hasPro && !FREE_COLORS.includes(color)) {
         setUpgradeReason("color");
         setShowUpgradeModal(true);
         return;
@@ -159,8 +166,8 @@ const CreateEvent = () => {
         return;
       }
 
-      // Check if trying to use custom color without Pro
-      if (data.themeColor !== "#1e3a8a" && !hasPro) {
+      // Check if trying to use non-free theme without Pro
+      if (!hasPro && !FREE_COLORS.includes(data.themeColor)) {
         setUpgradeReason("color");
         setShowUpgradeModal(true);
         return;
@@ -207,26 +214,38 @@ const CreateEvent = () => {
   return (
     <div
       className="min-h-screen transition-colors duration-300 px-6 py-8 -mt-6 md:-mt-16 lg:-mt-5 lg:rounded-md"
-      style={{ backgroundColor: themeColor }}
-    >
-      {/* Header */}
-      <div className="max-w-6xl mx-auto flex flex-col gap-5 md:flex-row justify-between mb-10">
-        <div>
-          <h1 className="text-4xl font-bold">Create Event</h1>
+      style={
+        themeColor?.startsWith("linear-gradient")
+          ? { backgroundImage: themeColor }
+          : { backgroundColor: themeColor }
+      }
+    >      {/* Header */}
+      <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_400px] gap-6 mb-10">
+        <div className="space-y-3 bg-black/20 backdrop-blur-sm rounded-2xl p-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow-lg">Create an Event</h1>
+          <p className="text-white/90 text-lg max-w-2xl">
+            Craft a memorable experience — add details, set the vibe, and share it with your audience.
+          </p>
           {!hasPro && (
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-sm text-white/90 mt-2">
               Free: {currentUser?.freeEventsCreated || 0}/1 events created
             </p>
           )}
         </div>
-        <AIEventCreator onEventGenerated={handleAIGenerate} />
+        <div className="glass rounded-2xl p-6 border border-white/20">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-purple-400" />
+            <h2 className="text-lg font-semibold">Generate with AI</h2>
+          </div>
+          <AIEventCreator onEventGenerated={handleAIGenerate} />
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-[320px_1fr] gap-10">
         {/* LEFT: Image + Theme */}
         <div className="space-y-6">
           <div
-            className="aspect-square w-full rounded-xl overflow-hidden flex items-center justify-center cursor-pointer border"
+            className="aspect-square w-full rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer glass border"
             onClick={() => setShowImagePicker(true)}
           >
             {coverImage ? (
@@ -261,20 +280,23 @@ const CreateEvent = () => {
                   key={color}
                   type="button"
                   className={`w-10 h-10 rounded-full border-2 transition-all ${
-                    !hasPro && color !== "#1dbc97"
+                    !hasPro && !FREE_COLORS.includes(color)
                       ? "opacity-40 cursor-not-allowed"
                       : "hover:scale-110"
                   }`}
-                  style={{
-                    backgroundColor: color,
-                    borderColor: themeColor === color ? "white" : "transparent",
-                  }}
-                  onClick={() => handleColorClick(color)}
-                  title={
-                    !hasPro && color !== "#1dbc97"
-                      ? "Upgrade to Pro for custom colors"
-                      : ""
+                  style={
+                    typeof color === "string" && color.startsWith("linear-gradient")
+                      ? {
+                          backgroundImage: color,
+                          borderColor: themeColor === color ? "white" : "transparent",
+                        }
+                      : {
+                          backgroundColor: color,
+                          borderColor: themeColor === color ? "white" : "transparent",
+                        }
                   }
+                  onClick={() => handleColorClick(color)}
+                  title={!hasPro && !FREE_COLORS.includes(color) ? "Upgrade to Pro for gradient themes and more colors" : ""}
                 />
               ))}
               {!hasPro && (
@@ -285,7 +307,7 @@ const CreateEvent = () => {
                     setShowUpgradeModal(true);
                   }}
                   className="w-10 h-10 rounded-full border-2 border-dashed border-purple-300 flex items-center justify-center hover:border-purple-500 transition-colors"
-                  title="Unlock more colors with Pro"
+                  title="Unlock gradient themes with Pro"
                 >
                   <Sparkles className="w-5 h-5 text-purple-400" />
                 </button>
@@ -293,14 +315,14 @@ const CreateEvent = () => {
             </div>
             {!hasPro && (
               <p className="text-xs text-muted-foreground">
-                Upgrade to Pro to unlock custom theme colors
+                Upgrade to Pro to unlock gradient themes and more colors
               </p>
             )}
           </div>
         </div>
 
         {/* RIGHT: Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 glass rounded-2xl p-6">
           {/* Title */}
           <div>
             <Input
@@ -551,7 +573,8 @@ const CreateEvent = () => {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full py-6 text-lg rounded-xl"
+            variant="brand"
+            className="w-full py-6 text-lg rounded-2xl"
           >
             {isLoading ? (
               <>
@@ -564,15 +587,13 @@ const CreateEvent = () => {
         </form>
       </div>
 
-      {/* Unsplash Picker */}
+      {/* Enhanced Image Picker */}
       {showImagePicker && (
-        <UnsplashImagePicker
-          isOpen={showImagePicker}
-          onClose={() => setShowImagePicker(false)}
-          onSelect={(url) => {
+        <EnhancedImagePicker
+          onImageSelect={(url) => {
             setValue("coverImage", url);
-            setShowImagePicker(false);
           }}
+          onClose={() => setShowImagePicker(false)}
         />
       )}
 

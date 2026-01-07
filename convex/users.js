@@ -12,12 +12,25 @@ export const store = mutation({
     }
 
     // Check if we've already stored this identity before
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
+    let user;
+    try {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
+    } catch (error) {
+      // Fallback while index is backfilling
+      if (error.message && error.message.includes("backfilling")) {
+        user = await ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier))
+          .unique();
+      } else {
+        throw error;
+      }
+    }
 
     if (user !== null) {
       // If we've seen this identity before but details changed, update them
@@ -63,18 +76,30 @@ export const getCurrentUser = query({
     }
 
     // 🔹 Lookup by tokenIdentifier
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier)
-      )
-      .unique();
+    try {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) =>
+          q.eq("tokenIdentifier", identity.tokenIdentifier)
+        )
+        .unique();
 
-    if (!user) {
-      throw new Error("User not found");
+      if (!user) {
+        return null; // Return null instead of throwing error to handle race condition
+      }
+
+      return user;
+    } catch (error) {
+      // If index is backfilling, fall back to full scan
+      if (error.message && error.message.includes("backfilling")) {
+        const user = await ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier))
+          .unique();
+        return user || null;
+      }
+      throw error;
     }
-
-    return user;
   },
 });
 

@@ -27,7 +27,7 @@ export default function RegisterModal({ event, isOpen, onClose }){
     const [email, setEmail] = useState(user?.primaryEmailAddress?.emailAddress || "");
     const [isSuccess, setIsSuccess] = useState(false);
 
-    const { mutate: registerForEvent, isloading } = useConvexMutation(
+    const { mutate: registerForEvent, isLoading } = useConvexMutation(
         api.registrations.registerForEvent
     );
 
@@ -159,7 +159,7 @@ export default function RegisterModal({ event, isOpen, onClose }){
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 gap-2" disabled={isLoading}>
+            <Button type="submit" variant="brand" className="flex-1 gap-2" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
