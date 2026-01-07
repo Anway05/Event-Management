@@ -1,3 +1,4 @@
+import { success } from "zod";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
@@ -101,5 +102,122 @@ export const getMyRegistrations = query({
         )
 
         return registrationsWithEvents;
+    }
+})
+
+export const cancelRegistrations = mutation({
+    args:{ registrationId: v.id("registrations")},
+    handler: async(ctx, args) => {
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+        const registration = await ctx.db.get(args.registrationId);
+        if(!registration){
+            throw new Error("Registration not found.");
+        }
+
+        if(registration.userId !== user._id){
+            throw new Error("User not authorized to cancel this registration.");
+        }
+
+        if(registration.status ==="cancelled"){
+            throw new Error("Registration is already cancelled.");
+        }
+
+        const event = await ctx.db.get(registration.eventId);
+        if(!event){
+            throw new Error("Associated event not found.");
+        }
+
+        // Update registration status to cancelled
+        await ctx.db.patch(args.registrationId, {
+            status: "cancelled",
+        });
+
+        // Decrement event registration count
+        if(event.registrationCount > 0){
+            await ctx.db.patch(event._id, {
+                registrationCount: event.registrationCount - 1,
+            });
+        }
+
+        return {success: true}
+    }
+})
+
+// Get registrations for an event (for organizers)
+export const getRegistrations = query({
+    args: { eventId: v.id("events")},
+    handler: async(ctx, args) => {
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+        const event = await ctx.db.get(args.eventId);
+        if(!event){
+            throw new Error("Event not found.");
+        }
+
+        if(event.organizerId !== user._id){
+            throw new Error("User not authorized to view registrations for this event.");
+        }
+
+        const registrations = await ctx.db
+            .query("registrations")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .order("desc")
+            .collect();
+
+        return registrations;
+    }
+})
+
+// Check in attendence with QR code
+export const checkInWithQRCode = mutation({
+    args: { qrCode: v.string()},
+    handler: async (ctx, args) => {
+        const user = await ctx.runQuery(internal.users.getCurrentUser);
+
+        const registration = await ctx.db
+            .query("registrations")
+            .withIndex("by_qr_code", (q) => q.eq("qrCode", args.qrCode))
+            .unique();
+
+        if(!registration){
+            throw new Error("Invalid QR code.");
+        }
+
+        const event = await ctx.db.get(registration.eventId);
+        if(!event){
+            throw new Error("Associated event not found.");
+        }
+
+        // Check if user is the organizer
+        if(event.organizerId !== user._id){
+            throw new Error("User not authorized to check in attendees for this event.");
+        }
+
+        //Check if already checked in
+        if(registration.checkedIn){
+            return {
+                success: false,
+                message: "Attendee already checked in.",
+                registration,
+            }
+        }
+
+        //Check in
+
+        await ctx.db.patch(registration._id, {
+            checkedIn: true,
+            checkInTime: Date.now(),
+        });
+
+        return {
+            success: true,
+            message: "Attendee checked in successfully.",
+            registration: {
+                ...registration,
+                checkedIn: true,
+                checkedInAt: Date.now(),
+            }
+        }
     }
 })
